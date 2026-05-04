@@ -13,7 +13,7 @@ gsap.registerPlugin(ScrollTrigger);
 //    never encounters a null node during hydration (fixes insertBefore crash)
 const HeroScene = dynamic(() => import('./HeroScene'), {
   ssr: false,
-  loading: () => <></>,
+  loading: () => <div aria-hidden="true" />,
 });
 const VideoScrubSection = dynamic(() => import('./VideoScrubSection'), {
   ssr: false,
