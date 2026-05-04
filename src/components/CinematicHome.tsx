@@ -353,6 +353,7 @@ export default function CinematicHome() {
       <Suspense fallback={<div className="w-full bg-black" style={{ height: '100svh' }} />}>
         <VideoScrubSection
           src="/assets/videos/cooking.mp4"
+          poster="/assets/hq/hero_food_1777882539725.png"
           title="The Art of Cooking"
           subtitle="Behind the scenes"
           description="Every dish at De Leela is crafted with precision, passion, and the finest ingredients. Watch our chefs bring authentic vegetarian cuisine to life."
@@ -366,6 +367,7 @@ export default function CinematicHome() {
       <Suspense fallback={<div className="w-full bg-black" style={{ height: '100svh' }} />}>
         <VideoScrubSection
           src="/assets/videos/coffee.mp4"
+          poster="/assets/hq/gallery_dish_2_1777882595741.png"
           title="Liquid Perfection"
           subtitle="Signature Beverages"
           description="From masala chai to chilled mocktails — our beverages are crafted with the same love and attention as every dish on our menu."

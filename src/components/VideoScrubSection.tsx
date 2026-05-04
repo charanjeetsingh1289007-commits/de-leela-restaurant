@@ -62,6 +62,7 @@ interface VideoScrubSectionProps {
   description: string;
   align?: 'left' | 'right' | 'center';
   accent?: string;
+  poster?: string;
 }
 
 export default function VideoScrubSection({
@@ -71,6 +72,7 @@ export default function VideoScrubSection({
   description,
   align  = 'left',
   accent = '#D4AF37',
+  poster,
 }: VideoScrubSectionProps) {
   const sectionRef  = useRef<HTMLElement>(null);
   const videoRef    = useRef<ExtendedHTMLVideoElement>(null);
@@ -85,260 +87,226 @@ export default function VideoScrubSection({
     const video   = videoRef.current as ExtendedHTMLVideoElement | null;
     if (!section || !video) return;
 
-    // ── MOBILE: autoplay loop, no pinning ───────────────────────────────
-    const isMobile = window.matchMedia('(max-width: 767px)').matches
-      || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+    let destroyed = false;
+    let stInstance: ScrollTrigger | null = null;
+    let ctx: ReturnType<typeof gsap.context> | null = null;
+    let rVFCHandle = 0;
+    let tickerFn: (() => void) | null = null;
+    let safetyTimer: NodeJS.Timeout;
 
-    if (isMobile) {
-      video.muted       = true;
-      video.loop        = true;
-      video.playsInline = true;
-      video.autoplay    = true;
-      video.load();
-      video.play().catch(() => {});
-      if (contentRef.current) contentRef.current.style.opacity = '1';
-      if (loaderRef.current)  loaderRef.current.style.display  = 'none';
-      return;
-    }
-
-    // ── DESKTOP: zero-flicker scroll scrub ──────────────────────────────
-    const supportsRVFC = typeof video.requestVideoFrameCallback === 'function';
-
-    // State shared between ticker and rVFC
-    let stInstance:   ScrollTrigger | null = null;
-    let ctx:          ReturnType<typeof gsap.context> | null = null;
-    let rVFCHandle:   number = 0;           // rVFC cancellation handle
-    let tickerFn:     (() => void) | null = null;  // GSAP ticker cleanup ref
-    let targetTime    = 0;                  // What we WANT the video to show
-    let lastSeeked    = -1;                 // Last time we actually issued a seek
-    let lastTickMs    = 0;                  // Frame-rate limiter for fallback path
-    let destroyed     = false;
-
-    // ── Helpers ──────────────────────────────────────────────────────────
-
-    const hideLoader = () => {
-      const el = loaderRef.current;
-      if (!el) return;
-      gsap.to(el, {
-        opacity: 0, duration: 0.45,
-        onComplete: () => { if (el) el.style.display = 'none'; },
-      });
-    };
-
-    /**
-     * Clamp helper: keeps target within [0, dur - 1 frame]
-     */
-    const clampTime = (t: number, dur: number) =>
-      Math.max(0, Math.min(t, dur - 0.033)); // 0.033 = 1 frame @ 30fps
-
-    // ── rVFC path (Chrome, Edge, Safari 15.4+) ──────────────────────────
-    /**
-     * rVFC loop:
-     *   - Fires AFTER the browser paints a new decoded frame
-     *   - We lerp currentTime → targetTime (max step = 0.5s to stay responsive)
-     *   - Seek is only issued if the delta exceeds 1 frame (prevents micro-seeks)
-     *   - Re-registers itself so it runs continuously
-     */
-    const startRVFC = (dur: number) => {
-      const onFrame: VideoFrameRequestCallback = () => {
-        if (destroyed) return;
-
-        // Direct seek to target — no lerp (ScrollTrigger scrub handles smoothing)
-        const clamped = clampTime(targetTime, dur);
-        if (Math.abs(clamped - lastSeeked) > 0.008) {  // skip if < half a frame
-          video.currentTime = clamped;
-          lastSeeked = clamped;
-        }
-
-        // Re-register for next frame
-        if (video.requestVideoFrameCallback) {
-          rVFCHandle = video.requestVideoFrameCallback(onFrame);
-        }
-      };
-
-      if (video.requestVideoFrameCallback) {
-        rVFCHandle = video.requestVideoFrameCallback(onFrame);
-      }
-    };
-
-    // ── Fallback path (Firefox, older Safari) ───────────────────────────
-    /**
-     * GSAP ticker fallback:
-     *   - Frame-rate limited to max 1 seek per 16ms
-     *   - Same lerp logic as rVFC path
-     */
-    const startTickerFallback = (dur: number) => {
-      const fn = () => {
-        if (destroyed) return;
-        const now = performance.now();
-        if (now - lastTickMs < 16) return;
-        lastTickMs = now;
-
-        // Direct seek — no lerp
-        const clamped = clampTime(targetTime, dur);
-        if (Math.abs(clamped - lastSeeked) > 0.008) {
-          video.currentTime = clamped;
-          lastSeeked = clamped;
-        }
-      };
-      tickerFn = fn;
-      gsap.ticker.add(fn);
-    };
-
-    // ── Main init: called once metadata is available ─────────────────────
-    const initScrub = () => {
-      const dur = video.duration;
-      if (!dur || isNaN(dur)) return;
-
-      video.pause();
-      video.currentTime = 0;
-      lastSeeked = 0;
-      hideLoader();
-
-      const contentEl = contentRef.current;
-      const wrapperEl = wrapperRef.current;
-      const overlayEl = overlayRef.current;
-      if (!contentEl || !wrapperEl) return;
-
-      ctx = gsap.context(() => {
-
-        // ── 1. ScrollTrigger pin (3× viewport = cinematic pace) ──────
-        stInstance = ScrollTrigger.create({
-          trigger: section,
-          start:   'top top',
-          end:     '+=300%',
-          pin:     true,
-          anticipatePin: 1,
-          // onUpdate updates targetTime — rVFC/ticker then chases it
-          onUpdate: (self) => {
-            targetTime = clampTime(self.progress * dur, dur);
-
-            // Progress bar
-            if (progressRef.current) {
-              progressRef.current.style.width = `${self.progress * 100}%`;
-            }
-
-            // Overlay dimming
-            if (overlayEl) {
-              const p  = self.progress;
-              let   op: number;
-              if (p < 0.25)      op = gsap.utils.mapRange(0, 0.25, 0.60, 0.12, p);
-              else if (p < 0.75) op = 0.12;
-              else               op = gsap.utils.mapRange(0.75, 1, 0.12, 0.60, p);
-              overlayEl.style.opacity = String(op);
-            }
-          },
-        });
-
-        // ── 2. Start the appropriate seek loop ────────────────────────
-        if (supportsRVFC) {
-          startRVFC(dur);
-        } else {
-          startTickerFallback(dur);
-        }
-
-        // ── 3. Text: scrub-driven fade + lift (smooth, via GSAP) ─────
-        gsap.timeline({
-          scrollTrigger: {
-            trigger: section,
-            start:   'top top',
-            end:     '+=300%',
-            scrub:   0.5,
-          },
-        })
-          .fromTo(contentEl,
-            { opacity: 0, y: 65 },
-            { opacity: 1, y: 0, ease: 'power2.out', duration: 0.14 },
-            0.07
-          )
-          .to(contentEl,
-            { opacity: 0, y: -40, ease: 'power2.in', duration: 0.10 },
-            0.85
-          );
-
-        // ── 4. Video wrapper: cinematic zoom-out ─────────────────────
-        gsap.timeline({
-          scrollTrigger: {
-            trigger: section,
-            start:   'top top',
-            end:     '+=300%',
-            scrub:   1.8,
-          },
-        })
-          .fromTo(wrapperEl,
-            { scale: 1.10 },
-            { scale: 1.00, ease: 'none', duration: 1 },
-            0
-          );
-
-      }, section);
-    };
-
-    // ── Bootstrap ────────────────────────────────────────────────────────
-    video.muted       = true;
-    video.playsInline = true;
-
-    // ── CRITICAL FIX: explicitly trigger network load on desktop ─────────
-    // preload="auto" alone is not enough after dynamic import — the browser
-    // may defer fetching until .load() is called programmatically.
-    video.load();
-
-    // ── Safety timeout: if video never loads, hide loader & show fallback ─
-    const safetyTimer = setTimeout(() => {
-      if (destroyed) return;
-      if (loaderRef.current) loaderRef.current.style.display = 'none';
-      if (contentRef.current) contentRef.current.style.opacity = '1';
-    }, 12_000); // 12s max wait
-
-    // ── Error/stalled handler: video file missing or codec unsupported ────
     const handleVideoError = () => {
       if (destroyed) return;
-      clearTimeout(safetyTimer);
+      if (safetyTimer) clearTimeout(safetyTimer);
       if (loaderRef.current) loaderRef.current.style.display = 'none';
       if (contentRef.current) contentRef.current.style.opacity = '1';
-      // Show a gold gradient fallback background so section doesn't look broken
       const wrapper = wrapperRef.current;
       if (wrapper) {
-        wrapper.style.background = `linear-gradient(135deg, #0D0C0B 0%, #1A1A1A 40%, #2C2A29 100%)`;
+        if (poster) {
+          wrapper.style.backgroundImage = `url(${poster})`;
+          wrapper.style.backgroundSize = 'cover';
+          wrapper.style.backgroundPosition = 'center';
+        } else {
+          wrapper.style.background = `linear-gradient(135deg, #0D0C0B 0%, #1A1A1A 40%, #2C2A29 100%)`;
+        }
       }
     };
-    video.addEventListener('error',   handleVideoError, { once: true });
-    video.addEventListener('stalled', handleVideoError, { once: true });
 
-    // Wait for at least HAVE_METADATA so duration is available
-    const handleMetadata = () => {
-      clearTimeout(safetyTimer);
-      initScrub();
-    };
+    // ── Intersection Observer: only load/init when visible ────────────────
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          init();
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '20% 0px', threshold: 0 }
+    );
+    observer.observe(section);
 
-    if (video.readyState >= 1) {
-      // Metadata already available (e.g. browser cache hit)
-      clearTimeout(safetyTimer);
-      initScrub();
-    } else {
-      video.addEventListener('loadedmetadata', handleMetadata, { once: true });
+    function init() {
+      if (destroyed) return;
+
+      const isMobile = window.matchMedia('(max-width: 767px)').matches
+        || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+
+      if (isMobile) {
+        video!.muted       = true;
+        video!.loop        = true;
+        video!.playsInline = true;
+        video!.autoplay    = true;
+        video!.load();
+        video!.play().catch(() => {});
+        if (contentRef.current) contentRef.current.style.opacity = '1';
+        if (loaderRef.current)  loaderRef.current.style.display  = 'none';
+        return;
+      }
+
+      const supportsRVFC = typeof video!.requestVideoFrameCallback === 'function';
+      let targetTime    = 0;
+      let lastSeeked    = -1;
+      let lastTickMs    = 0;
+
+      const hideLoader = () => {
+        const el = loaderRef.current;
+        if (!el) return;
+        gsap.to(el, {
+          opacity: 0, duration: 0.45,
+          onComplete: () => { if (el) el.style.display = 'none'; },
+        });
+      };
+
+      const clampTime = (t: number, dur: number) =>
+        Math.max(0, Math.min(t, dur - 0.033));
+
+      const startRVFC = (dur: number) => {
+        const onFrame: VideoFrameRequestCallback = () => {
+          if (destroyed) return;
+          const clamped = clampTime(targetTime, dur);
+          if (Math.abs(clamped - lastSeeked) > 0.008) {
+            video!.currentTime = clamped;
+            lastSeeked = clamped;
+          }
+          if (video!.requestVideoFrameCallback) {
+            rVFCHandle = video!.requestVideoFrameCallback(onFrame);
+          }
+        };
+        if (video!.requestVideoFrameCallback) {
+          rVFCHandle = video!.requestVideoFrameCallback(onFrame);
+        }
+      };
+
+      const startTickerFallback = (dur: number) => {
+        const fn = () => {
+          if (destroyed) return;
+          const now = performance.now();
+          if (now - lastTickMs < 16) return;
+          lastTickMs = now;
+          const clamped = clampTime(targetTime, dur);
+          if (Math.abs(clamped - lastSeeked) > 0.008) {
+            video!.currentTime = clamped;
+            lastSeeked = clamped;
+          }
+        };
+        tickerFn = fn;
+        gsap.ticker.add(fn);
+      };
+
+      const initScrub = () => {
+        const dur = video!.duration;
+        if (!dur || isNaN(dur)) return;
+
+        video!.pause();
+        video!.currentTime = 0;
+        lastSeeked = 0;
+        hideLoader();
+
+        const contentEl = contentRef.current;
+        const wrapperEl = wrapperRef.current;
+        const overlayEl = overlayRef.current;
+        if (!contentEl || !wrapperEl) return;
+
+        ctx = gsap.context(() => {
+          stInstance = ScrollTrigger.create({
+            trigger: section,
+            start:   'top top',
+            end:     '+=300%',
+            pin:     true,
+            anticipatePin: 1,
+            onUpdate: (self) => {
+              targetTime = clampTime(self.progress * dur, dur);
+              if (progressRef.current) {
+                progressRef.current.style.width = `${self.progress * 100}%`;
+              }
+              if (overlayEl) {
+                const p  = self.progress;
+                let   op: number;
+                if (p < 0.25)      op = gsap.utils.mapRange(0, 0.25, 0.60, 0.12, p);
+                else if (p < 0.75) op = 0.12;
+                else               op = gsap.utils.mapRange(0.75, 1, 0.12, 0.60, p);
+                overlayEl.style.opacity = String(op);
+              }
+            },
+          });
+
+          if (supportsRVFC) startRVFC(dur);
+          else startTickerFallback(dur);
+
+          gsap.timeline({
+            scrollTrigger: {
+              trigger: section,
+              start:   'top top',
+              end:     '+=300%',
+              scrub:   0.5,
+            },
+          })
+            .fromTo(contentEl,
+              { opacity: 0, y: 65 },
+              { opacity: 1, y: 0, ease: 'power2.out', duration: 0.14 },
+              0.07
+            )
+            .to(contentEl,
+              { opacity: 0, y: -40, ease: 'power2.in', duration: 0.10 },
+              0.85
+            );
+
+          gsap.timeline({
+            scrollTrigger: {
+              trigger: section,
+              start:   'top top',
+              end:     '+=300%',
+              scrub:   1.8,
+            },
+          })
+            .fromTo(wrapperEl,
+              { scale: 1.10 },
+              { scale: 1.00, ease: 'none', duration: 1 },
+              0
+            );
+        }, section);
+      };
+
+      video!.muted       = true;
+      video!.playsInline = true;
+      video!.load();
+
+      safetyTimer = setTimeout(() => {
+        if (destroyed) return;
+        if (loaderRef.current) loaderRef.current.style.display = 'none';
+        if (contentRef.current) contentRef.current.style.opacity = '1';
+      }, 15_000);
+
+      video!.addEventListener('error',   handleVideoError, { once: true });
+      video!.addEventListener('stalled', handleVideoError, { once: true });
+
+      if (video!.readyState >= 1) {
+        if (safetyTimer) clearTimeout(safetyTimer);
+        initScrub();
+      } else {
+        video!.addEventListener('loadedmetadata', () => {
+          if (safetyTimer) clearTimeout(safetyTimer);
+          initScrub();
+        }, { once: true });
+      }
     }
 
-    // ── Cleanup ──────────────────────────────────────────────────────────
     return () => {
       destroyed = true;
-      clearTimeout(safetyTimer);
-      video.removeEventListener('error',           handleVideoError);
-      video.removeEventListener('stalled',         handleVideoError);
-      video.removeEventListener('loadedmetadata',  handleMetadata);
-      // Cancel rVFC loop
-      if (rVFCHandle && video.cancelVideoFrameCallback) {
-        video.cancelVideoFrameCallback(rVFCHandle);
+      observer.disconnect();
+      if (safetyTimer) clearTimeout(safetyTimer);
+      if (video) {
+        video.removeEventListener('error',           handleVideoError);
+        video.removeEventListener('stalled',         handleVideoError);
+        // We can't easily remove the anonymous loadedmetadata but it's {once: true}
+        if (rVFCHandle && video.cancelVideoFrameCallback) {
+          video.cancelVideoFrameCallback(rVFCHandle);
+        }
       }
-      // Cancel ticker fallback
       if (tickerFn) gsap.ticker.remove(tickerFn);
-      // Revert all GSAP + ScrollTrigger
-      stInstance = null;
       if (ctx) ctx.revert();
+      stInstance = null;
     };
-  }, []);
+  }, [poster]);
 
-  // ── Alignment helpers ────────────────────────────────────────────────────
   const flexAlign =
     align === 'right'  ? 'items-end   text-right'  :
     align === 'center' ? 'items-center text-center' :
@@ -356,32 +324,26 @@ export default function VideoScrubSection({
       style={{ height: '100svh' }}
       aria-label={`${title} — cinematic video section`}
     >
-      {/* Video wrapper — scale target for zoom-out effect */}
       <div
         ref={wrapperRef}
         className="absolute inset-0"
         style={{ willChange: 'transform', transformOrigin: 'center center' }}
       >
-        {/**
-         * IMPORTANT: video element requirements for flicker-free scrubbing:
-         *  • preload="auto"   → browser buffers entire file immediately
-         *  • muted            → required for programmatic control
-         *  • playsInline      → iOS Safari compatibility
-         *  • No autoplay      → we own playback via currentTime
-         *  • No loop          → we own the timeline
-         */}
         <video
           ref={videoRef as React.Ref<HTMLVideoElement>}
           src={src}
+          poster={poster}
           className="absolute inset-0 w-full h-full object-cover"
           muted
           playsInline
+          loop
+          autoplay
           preload="auto"
           aria-hidden="true"
-          // GPU compositing hints — reduce flicker from layer promotion
-          style={{ willChange: 'contents', backfaceVisibility: 'hidden' }}
+          style={{ willChange: 'transform', backfaceVisibility: 'hidden' }}
         />
       </div>
+
 
       {/* Cinematic gradient overlay — opacity driven by onUpdate */}
       <div
