@@ -1,46 +1,10 @@
 'use client';
 
-/**
- * VideoScrubSection — Zero-flicker, frame-accurate scroll-scrub
- * ─────────────────────────────────────────────────────────────
- *
- * THE ROOT CAUSE OF FLICKERING in naive video scrubbing:
- *   When you assign video.currentTime, the browser must:
- *     1. Decode the nearest keyframe (I-frame)
- *     2. Apply all delta frames (P/B) forward to the target time
- *   During this decode window the <video> element paints NOTHING → blank flash.
- *
- * THE FIX — requestVideoFrameCallback (rVFC):
- *   rVFC fires AFTER a new frame has been decoded and is ready to display.
- *   We only issue the NEXT seek inside rVFC, so the old frame stays visible
- *   on screen until the new one is truly ready — zero flicker, zero blank frames.
- */
-
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
-
-// Extend HTMLVideoElement with the rVFC API (not yet in lib.dom.d.ts)
-type VideoFrameRequestCallback = (now: DOMHighResTimeStamp, metadata: {
-  expectedDisplayTime: DOMHighResTimeStamp;
-  width: number; height: number;
-  presentationTime: DOMHighResTimeStamp;
-  presentedFrames: number;
-  processingDuration?: number;
-  captureTime?: DOMHighResTimeStamp;
-  receiveTime?: DOMHighResTimeStamp;
-  rtpTimestamp?: number;
-}) => void;
-
-type ExtendedHTMLVideoElement = Omit<
-  HTMLVideoElement,
-  'requestVideoFrameCallback' | 'cancelVideoFrameCallback'
-> & {
-  requestVideoFrameCallback?: (callback: VideoFrameRequestCallback) => number;
-  cancelVideoFrameCallback?: (handle: number) => void;
-};
 
 interface VideoScrubSectionProps {
   src: string;
@@ -62,104 +26,55 @@ export default function VideoScrubSection({
   poster,
 }: VideoScrubSectionProps) {
   const sectionRef  = useRef<HTMLElement>(null);
-  const videoRef    = useRef<ExtendedHTMLVideoElement>(null);
+  const videoRef    = useRef<HTMLVideoElement>(null);
   const wrapperRef  = useRef<HTMLDivElement>(null);
   const contentRef  = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
-  const loaderRef   = useRef<HTMLDivElement>(null);
   const overlayRef  = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const section = sectionRef.current;
-    const video   = videoRef.current as ExtendedHTMLVideoElement | null;
+    const video   = videoRef.current;
     if (!section || !video) return;
 
-    let destroyed = false;
-    let stInstance: ScrollTrigger | null = null;
     let ctx: ReturnType<typeof gsap.context> | null = null;
-    let rVFCHandle = 0;
-    let tickerFn: (() => void) | null = null;
+    let observer: IntersectionObserver | null = null;
 
-    // ── MOBILE: autoplay loop ───────────────────────────────
     const isMobile = window.matchMedia('(max-width: 767px)').matches
       || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
 
-    if (isMobile) {
-      video.muted       = true;
-      video.loop        = true;
-      video.playsInline = true;
-      video.autoplay    = true;
-      video.load();
-      video.play().catch(() => {});
-      if (contentRef.current) contentRef.current.style.opacity = '1';
-      if (loaderRef.current)  loaderRef.current.style.display  = 'none';
-      return;
+    if (contentRef.current) {
+      contentRef.current.style.opacity = isMobile ? '1' : '0';
     }
 
-    // ── DESKTOP: scroll scrub ──────────────────────────────
-    const supportsRVFC = typeof video.requestVideoFrameCallback === 'function';
-    let targetTime    = 0;
-    let lastSeeked    = -1;
-    let lastTickMs    = 0;
+    // Lazy load and play/pause based on visibility to optimize performance
+    observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            video.play().catch(() => {});
+          } else {
+            video.pause();
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(section);
 
-    const clampTime = (t: number, dur: number) =>
-      Math.max(0, Math.min(t, dur - 0.033));
-
-    const startRVFC = (dur: number) => {
-      const onFrame: VideoFrameRequestCallback = () => {
-        if (destroyed) return;
-        const clamped = clampTime(targetTime, dur);
-        if (Math.abs(clamped - lastSeeked) > 0.008) {
-          video.currentTime = clamped;
-          lastSeeked = clamped;
-        }
-        if (video.requestVideoFrameCallback) {
-          rVFCHandle = video.requestVideoFrameCallback(onFrame);
-        }
-      };
-      if (video.requestVideoFrameCallback) {
-        rVFCHandle = video.requestVideoFrameCallback(onFrame);
-      }
-    };
-
-    const startTickerFallback = (dur: number) => {
-      const fn = () => {
-        if (destroyed) return;
-        const now = performance.now();
-        if (now - lastTickMs < 16) return;
-        lastTickMs = now;
-        const clamped = clampTime(targetTime, dur);
-        if (Math.abs(clamped - lastSeeked) > 0.008) {
-          video.currentTime = clamped;
-          lastSeeked = clamped;
-        }
-      };
-      tickerFn = fn;
-      gsap.ticker.add(fn);
-    };
-
-    const initScrub = () => {
-      const dur = video.duration;
-      if (!dur || isNaN(dur)) return;
-
-      video.pause();
-      video.currentTime = 0;
-      if (loaderRef.current) loaderRef.current.style.display = 'none';
-
-      const contentEl = contentRef.current;
-      const wrapperEl = wrapperRef.current;
-      const overlayEl = overlayRef.current;
-      if (!contentEl || !wrapperEl) return;
-
+    if (!isMobile) {
       ctx = gsap.context(() => {
-        stInstance = ScrollTrigger.create({
+        const contentEl = contentRef.current;
+        const wrapperEl = wrapperRef.current;
+        const overlayEl = overlayRef.current;
+
+        ScrollTrigger.create({
           trigger: section,
           start:   'top top',
           end:     '+=300%',
           pin:     true,
           anticipatePin: 1,
           onUpdate: (self) => {
-            targetTime = clampTime(self.progress * dur, dur);
             if (progressRef.current) {
               progressRef.current.style.width = `${self.progress * 100}%`;
             }
@@ -174,68 +89,47 @@ export default function VideoScrubSection({
           },
         });
 
-        if (supportsRVFC) startRVFC(dur);
-        else startTickerFallback(dur);
+        if (contentEl) {
+          gsap.timeline({
+            scrollTrigger: {
+              trigger: section,
+              start:   'top top',
+              end:     '+=300%',
+              scrub:   0.5,
+            },
+          })
+            .fromTo(contentEl,
+              { opacity: 0, y: 65 },
+              { opacity: 1, y: 0, ease: 'power2.out', duration: 0.14 },
+              0.07
+            )
+            .to(contentEl,
+              { opacity: 0, y: -40, ease: 'power2.in', duration: 0.10 },
+              0.85
+            );
+        }
 
-        gsap.timeline({
-          scrollTrigger: {
-            trigger: section,
-            start:   'top top',
-            end:     '+=300%',
-            scrub:   0.5,
-          },
-        })
-          .fromTo(contentEl,
-            { opacity: 0, y: 65 },
-            { opacity: 1, y: 0, ease: 'power2.out', duration: 0.14 },
-            0.07
-          )
-          .to(contentEl,
-            { opacity: 0, y: -40, ease: 'power2.in', duration: 0.10 },
-            0.85
-          );
-
-        gsap.timeline({
-          scrollTrigger: {
-            trigger: section,
-            start:   'top top',
-            end:     '+=300%',
-            scrub:   1.8,
-          },
-        })
-          .fromTo(wrapperEl,
-            { scale: 1.10 },
-            { scale: 1.00, ease: 'none', duration: 1 },
-            0
-          );
+        if (wrapperEl) {
+          gsap.timeline({
+            scrollTrigger: {
+              trigger: section,
+              start:   'top top',
+              end:     '+=300%',
+              scrub:   1.8,
+            },
+          })
+            .fromTo(wrapperEl,
+              { scale: 1.10 },
+              { scale: 1.00, ease: 'none', duration: 1 },
+              0
+            );
+        }
       }, section);
-    };
-
-    video.muted       = true;
-    video.playsInline = true;
-    video.load();
-
-    const handleMetadata = () => {
-      initScrub();
-    };
-
-    if (video.readyState >= 1) {
-      initScrub();
-    } else {
-      video.addEventListener('loadedmetadata', handleMetadata, { once: true });
     }
 
     return () => {
-      destroyed = true;
-      if (video) {
-        video.removeEventListener('loadedmetadata', handleMetadata);
-        if (rVFCHandle && video.cancelVideoFrameCallback) {
-          video.cancelVideoFrameCallback(rVFCHandle);
-        }
-      }
-      if (tickerFn) gsap.ticker.remove(tickerFn);
+      if (observer) observer.disconnect();
       if (ctx) ctx.revert();
-      stInstance = null;
     };
   }, []);
 
@@ -262,13 +156,14 @@ export default function VideoScrubSection({
         style={{ willChange: 'transform', transformOrigin: 'center center' }}
       >
         <video
-          ref={videoRef as React.Ref<HTMLVideoElement>}
+          ref={videoRef}
           src={src}
           poster={poster}
           className="absolute inset-0 w-full h-full object-cover"
           muted
+          loop
           playsInline
-          preload="auto"
+          preload="none"
           aria-hidden="true"
           style={{ willChange: 'transform', backfaceVisibility: 'hidden' }}
         />
@@ -313,29 +208,6 @@ export default function VideoScrubSection({
         className="absolute inset-x-0 bottom-0 pointer-events-none"
         style={{ height: 'clamp(16px, 2.8vh, 48px)', background: '#000', zIndex: 10 }}
       />
-
-      <div
-        ref={loaderRef}
-        className="absolute inset-0 flex flex-col items-center justify-center bg-black z-30 gap-4"
-      >
-        <div
-          style={{
-            width: 38, height: 38,
-            borderLeft:   `1.5px solid ${accent}`,
-            borderBottom: `1.5px solid ${accent}`,
-            borderRight:  `1.5px solid ${accent}`,
-            borderTop:    '1.5px solid transparent',
-            borderRadius: '50%',
-            animation: 'spin 0.75s linear infinite',
-          }}
-        />
-        <p
-          className="text-[10px] uppercase tracking-[0.3em] font-light"
-          style={{ color: accent, opacity: 0.7 }}
-        >
-          Loading
-        </p>
-      </div>
 
       <div
         ref={contentRef}

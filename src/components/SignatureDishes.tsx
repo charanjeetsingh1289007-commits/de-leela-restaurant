@@ -172,7 +172,7 @@ export default function SignatureDishes() {
                   {dish.name}
                 </h3>
                 <p className="text-[#2C2A29]/50 font-light text-sm leading-relaxed mb-6 italic">
-                  "{dish.desc}"
+                  &quot;{dish.desc}&quot;
                 </p>
                 <div className="w-12 h-[2px] bg-[#D4AF37]/20 group-hover:w-full group-hover:bg-[#D4AF37]/40 transition-all duration-700" />
               </div>

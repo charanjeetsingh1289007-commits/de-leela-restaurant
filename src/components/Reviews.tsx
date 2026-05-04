@@ -224,7 +224,7 @@ export default function ReviewsPage() {
       {/* ── Featured dark testimonial strip ──────────────────────────── */}
       <div className="py-20 bg-[#2C2A29] relative overflow-hidden">
         <div className="absolute inset-0 bg-cinematic" />
-        <div className="absolute top-4 left-8 text-[180px] leading-none text-[#D4AF37]/6 font-serif select-none pointer-events-none">"</div>
+        <div className="absolute top-4 left-8 text-[180px] leading-none text-[#D4AF37]/6 font-serif select-none pointer-events-none">&quot;</div>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl relative z-10 text-center featured-review">
           <p className="text-sm font-bold text-[#D4AF37] uppercase tracking-[0.28em] mb-8">Featured Review</p>
           <blockquote className="text-2xl md:text-3xl font-serif italic text-white leading-relaxed mb-8">
@@ -253,7 +253,7 @@ export default function ReviewsPage() {
                 {/* Top gold bar */}
                 <div className="absolute top-0 inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent" />
                 {/* Big quote mark */}
-                <div className="absolute top-4 right-6 text-[100px] leading-none text-[#D4AF37]/8 font-serif select-none pointer-events-none">"</div>
+                <div className="absolute top-4 right-6 text-[100px] leading-none text-[#D4AF37]/8 font-serif select-none pointer-events-none">&quot;</div>
 
                 <StarRow rating={r.rating} />
                 <p className="text-white/85 font-serif italic text-lg leading-relaxed mt-5 mb-8">
