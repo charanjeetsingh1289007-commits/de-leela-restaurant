@@ -20,7 +20,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${playfair.variable} ${lato.variable} antialiased`} suppressHydrationWarning>
-      <body className="min-h-screen flex flex-col font-sans bg-[#FAF9F6] text-[#2C2A29]">
+      <body className="min-h-screen flex flex-col font-sans bg-[#FAF9F6] text-[#2C2A29] relative overflow-x-hidden">
+        {/* Global Atmospheric Elements */}
+        <div className="blob-decorator blob-gold" />
+        <div className="blob-decorator blob-dark" />
+        
         <ClientProviders>
           <Navbar />
           {children}

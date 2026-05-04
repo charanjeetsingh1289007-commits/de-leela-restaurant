@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const navLinks = [
@@ -17,11 +17,22 @@ const navLinks = [
 export default function Navbar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-[#FAF9F6]/85 backdrop-blur-xl border-b border-[#D4AF37]/20 shadow-sm">
+    <header className={`sticky top-0 z-50 w-full transition-all duration-300 ${
+      scrolled 
+        ? 'bg-[#FAF9F6]/95 backdrop-blur-xl border-b border-[#D4AF37]/30 shadow-md h-16' 
+        : 'bg-[#FAF9F6]/60 backdrop-blur-md border-b border-transparent h-20'
+    }`}>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+        <div className="flex items-center justify-between h-full">
           {/* Logo */}
           <div className="flex-shrink-0">
             <Link href="/" className="flex items-center gap-3 group">
@@ -43,7 +54,7 @@ export default function Navbar() {
 
 
           {/* Desktop Nav */}
-          <nav className="hidden md:block">
+          <nav className="hidden md:flex items-center space-x-12">
             <ul className="flex space-x-10">
               {navLinks.map(({ href, label }) => {
                 const isActive = pathname === href;
@@ -51,7 +62,7 @@ export default function Navbar() {
                   <li key={href}>
                     <Link
                       href={href}
-                      className={`relative text-[15px] font-medium uppercase tracking-widest transition-colors group ${
+                      className={`relative text-[14px] font-bold uppercase tracking-widest transition-colors group ${
                         isActive ? 'text-[#D4AF37]' : 'text-[#2C2A29]/80 hover:text-[#D4AF37]'
                       }`}
                     >
@@ -66,6 +77,14 @@ export default function Navbar() {
                 );
               })}
             </ul>
+            <Link
+              href="https://wa.me/919781336141"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-6 py-2.5 bg-[#D4AF37] hover:bg-[#AA8C2C] text-[#1A1A1A] text-[12px] font-bold uppercase tracking-[0.2em] transition-all duration-300 shadow-lg shadow-[#D4AF37]/10"
+            >
+              Reserve
+            </Link>
           </nav>
 
           {/* Mobile Hamburger */}

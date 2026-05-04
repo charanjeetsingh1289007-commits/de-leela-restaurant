@@ -95,7 +95,7 @@ export default function GalleryPage() {
       {/* Dark hero banner */}
       <div className="relative h-64 md:h-72 bg-[#1A1A1A] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 opacity-30">
-          <Image src="/assets/all img/2026-02-08 (2).jpg" alt="De Leela restaurant ambiance" fill sizes="100vw" className="object-cover" />
+          <Image src="/assets/all img/2026-02-08 (2).jpg" alt="De Leela restaurant ambiance" fill sizes="100vw" className="object-cover" priority />
         </div>
         <div className="absolute inset-0 hero-overlay" />
         <div className="relative z-10 text-center gallery-header">

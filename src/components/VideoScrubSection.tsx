@@ -14,19 +14,6 @@
  *   rVFC fires AFTER a new frame has been decoded and is ready to display.
  *   We only issue the NEXT seek inside rVFC, so the old frame stays visible
  *   on screen until the new one is truly ready — zero flicker, zero blank frames.
- *
- *   Fallback: browsers without rVFC use a GSAP-ticker-driven loop with
- *   aggressive frame-rate limiting (max 1 seek per 16ms) as a best-effort.
- *
- * SMOOTHNESS TECHNIQUE:
- *   • We maintain a `targetTime` float that GSAP-ticker updates every frame
- *     from the ScrollTrigger progress × duration.
- *   • Inside rVFC we linearly interpolate: current → target (lerp factor 0.25)
- *     This smooths out any Lenis easing that hasn't settled yet.
- *   • The interpolation is capped at ±0.5s so fast scrolls still respond.
- *
- * MOBILE:
- *   Synchronous detect → autoplay muted loop, no pinning.
  */
 
 import { useEffect, useRef } from 'react';
@@ -92,211 +79,156 @@ export default function VideoScrubSection({
     let ctx: ReturnType<typeof gsap.context> | null = null;
     let rVFCHandle = 0;
     let tickerFn: (() => void) | null = null;
-    let safetyTimer: NodeJS.Timeout;
 
-    const handleVideoError = () => {
-      if (destroyed) return;
-      if (safetyTimer) clearTimeout(safetyTimer);
-      if (loaderRef.current) loaderRef.current.style.display = 'none';
+    // ── MOBILE: autoplay loop ───────────────────────────────
+    const isMobile = window.matchMedia('(max-width: 767px)').matches
+      || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+
+    if (isMobile) {
+      video.muted       = true;
+      video.loop        = true;
+      video.playsInline = true;
+      video.autoplay    = true;
+      video.load();
+      video.play().catch(() => {});
       if (contentRef.current) contentRef.current.style.opacity = '1';
-      const wrapper = wrapperRef.current;
-      if (wrapper) {
-        if (poster) {
-          wrapper.style.backgroundImage = `url(${poster})`;
-          wrapper.style.backgroundSize = 'cover';
-          wrapper.style.backgroundPosition = 'center';
-        } else {
-          wrapper.style.background = `linear-gradient(135deg, #0D0C0B 0%, #1A1A1A 40%, #2C2A29 100%)`;
+      if (loaderRef.current)  loaderRef.current.style.display  = 'none';
+      return;
+    }
+
+    // ── DESKTOP: scroll scrub ──────────────────────────────
+    const supportsRVFC = typeof video.requestVideoFrameCallback === 'function';
+    let targetTime    = 0;
+    let lastSeeked    = -1;
+    let lastTickMs    = 0;
+
+    const clampTime = (t: number, dur: number) =>
+      Math.max(0, Math.min(t, dur - 0.033));
+
+    const startRVFC = (dur: number) => {
+      const onFrame: VideoFrameRequestCallback = () => {
+        if (destroyed) return;
+        const clamped = clampTime(targetTime, dur);
+        if (Math.abs(clamped - lastSeeked) > 0.008) {
+          video.currentTime = clamped;
+          lastSeeked = clamped;
         }
+        if (video.requestVideoFrameCallback) {
+          rVFCHandle = video.requestVideoFrameCallback(onFrame);
+        }
+      };
+      if (video.requestVideoFrameCallback) {
+        rVFCHandle = video.requestVideoFrameCallback(onFrame);
       }
     };
 
-    // ── Intersection Observer: only load/init when visible ────────────────
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          init();
-          observer.disconnect();
+    const startTickerFallback = (dur: number) => {
+      const fn = () => {
+        if (destroyed) return;
+        const now = performance.now();
+        if (now - lastTickMs < 16) return;
+        lastTickMs = now;
+        const clamped = clampTime(targetTime, dur);
+        if (Math.abs(clamped - lastSeeked) > 0.008) {
+          video.currentTime = clamped;
+          lastSeeked = clamped;
         }
-      },
-      { rootMargin: '20% 0px', threshold: 0 }
-    );
-    observer.observe(section);
+      };
+      tickerFn = fn;
+      gsap.ticker.add(fn);
+    };
 
-    function init() {
-      if (destroyed) return;
+    const initScrub = () => {
+      const dur = video.duration;
+      if (!dur || isNaN(dur)) return;
 
-      const isMobile = window.matchMedia('(max-width: 767px)').matches
-        || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+      video.pause();
+      video.currentTime = 0;
+      if (loaderRef.current) loaderRef.current.style.display = 'none';
 
-      if (isMobile) {
-        video!.muted       = true;
-        video!.loop        = true;
-        video!.playsInline = true;
-        video!.autoplay    = true;
-        video!.load();
-        video!.play().catch(() => {});
-        if (contentRef.current) contentRef.current.style.opacity = '1';
-        if (loaderRef.current)  loaderRef.current.style.display  = 'none';
-        return;
-      }
+      const contentEl = contentRef.current;
+      const wrapperEl = wrapperRef.current;
+      const overlayEl = overlayRef.current;
+      if (!contentEl || !wrapperEl) return;
 
-      const supportsRVFC = typeof video!.requestVideoFrameCallback === 'function';
-      let targetTime    = 0;
-      let lastSeeked    = -1;
-      let lastTickMs    = 0;
-
-      const hideLoader = () => {
-        const el = loaderRef.current;
-        if (!el) return;
-        gsap.to(el, {
-          opacity: 0, duration: 0.45,
-          onComplete: () => { if (el) el.style.display = 'none'; },
+      ctx = gsap.context(() => {
+        stInstance = ScrollTrigger.create({
+          trigger: section,
+          start:   'top top',
+          end:     '+=300%',
+          pin:     true,
+          anticipatePin: 1,
+          onUpdate: (self) => {
+            targetTime = clampTime(self.progress * dur, dur);
+            if (progressRef.current) {
+              progressRef.current.style.width = `${self.progress * 100}%`;
+            }
+            if (overlayEl) {
+              const p  = self.progress;
+              let   op: number;
+              if (p < 0.25)      op = gsap.utils.mapRange(0, 0.25, 0.60, 0.12, p);
+              else if (p < 0.75) op = 0.12;
+              else               op = gsap.utils.mapRange(0.75, 1, 0.12, 0.60, p);
+              overlayEl.style.opacity = String(op);
+            }
+          },
         });
-      };
 
-      const clampTime = (t: number, dur: number) =>
-        Math.max(0, Math.min(t, dur - 0.033));
+        if (supportsRVFC) startRVFC(dur);
+        else startTickerFallback(dur);
 
-      const startRVFC = (dur: number) => {
-        const onFrame: VideoFrameRequestCallback = () => {
-          if (destroyed) return;
-          const clamped = clampTime(targetTime, dur);
-          if (Math.abs(clamped - lastSeeked) > 0.008) {
-            video!.currentTime = clamped;
-            lastSeeked = clamped;
-          }
-          if (video!.requestVideoFrameCallback) {
-            rVFCHandle = video!.requestVideoFrameCallback(onFrame);
-          }
-        };
-        if (video!.requestVideoFrameCallback) {
-          rVFCHandle = video!.requestVideoFrameCallback(onFrame);
-        }
-      };
-
-      const startTickerFallback = (dur: number) => {
-        const fn = () => {
-          if (destroyed) return;
-          const now = performance.now();
-          if (now - lastTickMs < 16) return;
-          lastTickMs = now;
-          const clamped = clampTime(targetTime, dur);
-          if (Math.abs(clamped - lastSeeked) > 0.008) {
-            video!.currentTime = clamped;
-            lastSeeked = clamped;
-          }
-        };
-        tickerFn = fn;
-        gsap.ticker.add(fn);
-      };
-
-      const initScrub = () => {
-        const dur = video!.duration;
-        if (!dur || isNaN(dur)) return;
-
-        video!.pause();
-        video!.currentTime = 0;
-        lastSeeked = 0;
-        hideLoader();
-
-        const contentEl = contentRef.current;
-        const wrapperEl = wrapperRef.current;
-        const overlayEl = overlayRef.current;
-        if (!contentEl || !wrapperEl) return;
-
-        ctx = gsap.context(() => {
-          stInstance = ScrollTrigger.create({
+        gsap.timeline({
+          scrollTrigger: {
             trigger: section,
             start:   'top top',
             end:     '+=300%',
-            pin:     true,
-            anticipatePin: 1,
-            onUpdate: (self) => {
-              targetTime = clampTime(self.progress * dur, dur);
-              if (progressRef.current) {
-                progressRef.current.style.width = `${self.progress * 100}%`;
-              }
-              if (overlayEl) {
-                const p  = self.progress;
-                let   op: number;
-                if (p < 0.25)      op = gsap.utils.mapRange(0, 0.25, 0.60, 0.12, p);
-                else if (p < 0.75) op = 0.12;
-                else               op = gsap.utils.mapRange(0.75, 1, 0.12, 0.60, p);
-                overlayEl.style.opacity = String(op);
-              }
-            },
-          });
+            scrub:   0.5,
+          },
+        })
+          .fromTo(contentEl,
+            { opacity: 0, y: 65 },
+            { opacity: 1, y: 0, ease: 'power2.out', duration: 0.14 },
+            0.07
+          )
+          .to(contentEl,
+            { opacity: 0, y: -40, ease: 'power2.in', duration: 0.10 },
+            0.85
+          );
 
-          if (supportsRVFC) startRVFC(dur);
-          else startTickerFallback(dur);
+        gsap.timeline({
+          scrollTrigger: {
+            trigger: section,
+            start:   'top top',
+            end:     '+=300%',
+            scrub:   1.8,
+          },
+        })
+          .fromTo(wrapperEl,
+            { scale: 1.10 },
+            { scale: 1.00, ease: 'none', duration: 1 },
+            0
+          );
+      }, section);
+    };
 
-          gsap.timeline({
-            scrollTrigger: {
-              trigger: section,
-              start:   'top top',
-              end:     '+=300%',
-              scrub:   0.5,
-            },
-          })
-            .fromTo(contentEl,
-              { opacity: 0, y: 65 },
-              { opacity: 1, y: 0, ease: 'power2.out', duration: 0.14 },
-              0.07
-            )
-            .to(contentEl,
-              { opacity: 0, y: -40, ease: 'power2.in', duration: 0.10 },
-              0.85
-            );
+    video.muted       = true;
+    video.playsInline = true;
+    video.load();
 
-          gsap.timeline({
-            scrollTrigger: {
-              trigger: section,
-              start:   'top top',
-              end:     '+=300%',
-              scrub:   1.8,
-            },
-          })
-            .fromTo(wrapperEl,
-              { scale: 1.10 },
-              { scale: 1.00, ease: 'none', duration: 1 },
-              0
-            );
-        }, section);
-      };
+    const handleMetadata = () => {
+      initScrub();
+    };
 
-      video!.muted       = true;
-      video!.playsInline = true;
-      video!.load();
-
-      safetyTimer = setTimeout(() => {
-        if (destroyed) return;
-        if (loaderRef.current) loaderRef.current.style.display = 'none';
-        if (contentRef.current) contentRef.current.style.opacity = '1';
-      }, 15_000);
-
-      video!.addEventListener('error',   handleVideoError, { once: true });
-      video!.addEventListener('stalled', handleVideoError, { once: true });
-
-      if (video!.readyState >= 1) {
-        if (safetyTimer) clearTimeout(safetyTimer);
-        initScrub();
-      } else {
-        video!.addEventListener('loadedmetadata', () => {
-          if (safetyTimer) clearTimeout(safetyTimer);
-          initScrub();
-        }, { once: true });
-      }
+    if (video.readyState >= 1) {
+      initScrub();
+    } else {
+      video.addEventListener('loadedmetadata', handleMetadata, { once: true });
     }
 
     return () => {
       destroyed = true;
-      observer.disconnect();
-      if (safetyTimer) clearTimeout(safetyTimer);
       if (video) {
-        video.removeEventListener('error',           handleVideoError);
-        video.removeEventListener('stalled',         handleVideoError);
-        // We can't easily remove the anonymous loadedmetadata but it's {once: true}
+        video.removeEventListener('loadedmetadata', handleMetadata);
         if (rVFCHandle && video.cancelVideoFrameCallback) {
           video.cancelVideoFrameCallback(rVFCHandle);
         }
@@ -305,7 +237,7 @@ export default function VideoScrubSection({
       if (ctx) ctx.revert();
       stInstance = null;
     };
-  }, [poster]);
+  }, []);
 
   const flexAlign =
     align === 'right'  ? 'items-end   text-right'  :
@@ -321,7 +253,7 @@ export default function VideoScrubSection({
     <section
       ref={sectionRef}
       className="video-scrub-section relative w-full bg-black overflow-hidden"
-      style={{ height: '100svh' }}
+      style={{ height: '100vh' }}
       aria-label={`${title} — cinematic video section`}
     >
       <div
@@ -336,16 +268,12 @@ export default function VideoScrubSection({
           className="absolute inset-0 w-full h-full object-cover"
           muted
           playsInline
-          loop
-          autoplay
           preload="auto"
           aria-hidden="true"
           style={{ willChange: 'transform', backfaceVisibility: 'hidden' }}
         />
       </div>
 
-
-      {/* Cinematic gradient overlay — opacity driven by onUpdate */}
       <div
         ref={overlayRef}
         className="absolute inset-0 pointer-events-none"
@@ -358,18 +286,15 @@ export default function VideoScrubSection({
             rgba(0,0,0,0.75) 100%
           )`,
           opacity: 0.6,
-          // Separate layer so opacity changes don't trigger repaint of video
           willChange: 'opacity',
         }}
       />
 
-      {/* Edge vignette (static — no opacity change needed) */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{ boxShadow: 'inset 0 0 140px rgba(0,0,0,0.50)' }}
       />
 
-      {/* Accent colour atmospheric glow */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -380,7 +305,6 @@ export default function VideoScrubSection({
         }}
       />
 
-      {/* Letterbox bars — 2.35:1 cinema feel */}
       <div
         className="absolute inset-x-0 top-0 pointer-events-none"
         style={{ height: 'clamp(16px, 2.8vh, 48px)', background: '#000', zIndex: 10 }}
@@ -390,12 +314,10 @@ export default function VideoScrubSection({
         style={{ height: 'clamp(16px, 2.8vh, 48px)', background: '#000', zIndex: 10 }}
       />
 
-      {/* Loading overlay — fades out once initScrub() runs */}
       <div
         ref={loaderRef}
         className="absolute inset-0 flex flex-col items-center justify-center bg-black z-30 gap-4"
       >
-        {/* Spinner */}
         <div
           style={{
             width: 38, height: 38,
@@ -415,15 +337,10 @@ export default function VideoScrubSection({
         </p>
       </div>
 
-      {/* Text content — GSAP scrub controls opacity + y */}
       <div
         ref={contentRef}
         className={`absolute inset-0 flex flex-col justify-end pb-20 px-8 md:px-24 lg:px-32 ${flexAlign}`}
-        style={{
-          zIndex: 20,
-          opacity: 0,
-          willChange: 'opacity, transform',
-        }}
+        style={{ zIndex: 20, opacity: 0, willChange: 'opacity, transform' }}
       >
         <p
           className="text-[11px] font-bold uppercase tracking-[0.4em] mb-3"
@@ -451,23 +368,16 @@ export default function VideoScrubSection({
         </p>
       </div>
 
-      {/* Scroll progress bar (desktop only) */}
       <div
         className="absolute inset-x-0 hidden md:block"
         style={{ bottom: 'clamp(16px, 2.8vh, 48px)', height: '1px', background: 'rgba(255,255,255,0.08)', zIndex: 25 }}
       >
         <div
           ref={progressRef}
-          style={{
-            width: '0%',
-            height: '100%',
-            background: accent,
-            // No CSS transition — we update this directly from onUpdate for responsiveness
-          }}
+          style={{ width: '0%', height: '100%', background: accent }}
         />
       </div>
 
-      {/* Scroll hint (desktop only) */}
       <div
         className="absolute right-8 bottom-16 flex-col items-center gap-2 text-white/28 hidden md:flex"
         style={{ zIndex: 22 }}

@@ -17,10 +17,10 @@ gsap.registerPlugin(ScrollTrigger);
 export default function SmoothScrollProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const lenis = new Lenis({
-      duration: 1.4,           // How long each scroll gesture takes (seconds)
-      easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // Expo easing
+      duration: 1.2,           // Slightly slower for luxury feel
+      easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), 
       smoothWheel: true,
-      touchMultiplier: 1.8,
+      touchMultiplier: 1.5,    // Smoother touch
       infinite: false,
     });
 
@@ -31,11 +31,18 @@ export default function SmoothScrollProvider({ children }: { children: React.Rea
     const ticker = gsap.ticker.add((time) => {
       lenis.raf(time * 1000);
     });
-    gsap.ticker.lagSmoothing(0); // Disable lag smoothing for exact frame timing
+
+    // CRITICAL: Restore lagSmoothing(0) to prevent sync drift between Lenis and GSAP
+    gsap.ticker.lagSmoothing(0);
+
+    // Normalize scroll for mobile/touch devices to prevent 'jank'
+    ScrollTrigger.normalizeScroll(true);
+    ScrollTrigger.config({ ignoreMobileResize: true });
 
     return () => {
       gsap.ticker.remove(ticker);
       lenis.destroy();
+      ScrollTrigger.normalizeScroll(false);
     };
   }, []);
 

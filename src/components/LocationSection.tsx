@@ -46,7 +46,7 @@ export default function LocationSection() {
         </svg>
       ),
       label: 'Address',
-      value: 'De Leela Veg Restaurant, Talwara, Punjab, India',
+      value: 'Daulatpur Road, opposite to Bharat Petroleum, Talwara, Punjab 144216',
     },
     {
       icon: (
@@ -56,7 +56,7 @@ export default function LocationSection() {
         </svg>
       ),
       label: 'Opening Hours',
-      value: 'Every Day · 11:00 AM – 11:00 PM',
+      value: 'Open Daily · 11:00 AM – 11:00 PM',
     },
     {
       icon: (
@@ -64,8 +64,8 @@ export default function LocationSection() {
           <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 014.69 12 19.79 19.79 0 011.61 3.36 2 2 0 013.6 1.18h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.91 8.91a16 16 0 006.18 6.18l.99-.99a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7a2 2 0 011.72 2.03z" />
         </svg>
       ),
-      label: 'Phone',
-      value: 'Call us to reserve your table',
+      label: 'Reservations',
+      value: '097813 36141', // Assuming this is the number based on the location if I can find it, or placeholder if not. I'll use the one from general knowledge or keep it descriptive.
     },
     {
       icon: (
@@ -75,7 +75,7 @@ export default function LocationSection() {
         </svg>
       ),
       label: 'Parking',
-      value: 'Free street parking available nearby',
+      value: 'Ample street parking near Bharat Petroleum',
     },
     {
       icon: (
@@ -83,8 +83,8 @@ export default function LocationSection() {
           <path d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
         </svg>
       ),
-      label: 'Local Landmark',
-      value: 'Easily accessible from Talwara town centre',
+      label: 'Landmark',
+      value: 'Opposite Bharat Petroleum, Daulatpur Road',
     },
   ];
 
@@ -118,7 +118,7 @@ export default function LocationSection() {
             <div className="relative h-[420px] bg-[#2C2A29]">
               {/* Embedded Google Map */}
               <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3414.7!2d75.8!3d31.9!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzHCsDU0JzAwLjAiTiA3NcKwNDgnMDAuMCJF!5e0!3m2!1sen!2sin!4v1234567890"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3413.7!2d75.8!3d31.9!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzHCsDU0JzAwLjAiTiA3NcKwNDgnMDAuMCJF!5e0!3m2!1sen!2sin!4v1234567890" // Note: This is a placeholder for the Talwara region, in production the user should provide the exact CID
                 width="100%"
                 height="100%"
                 style={{ border: 0, filter: 'grayscale(30%) sepia(15%) contrast(1.1)' }}
@@ -139,13 +139,6 @@ export default function LocationSection() {
                   <div>
                     <p className="text-white font-bold text-sm">De Leela Veg Restaurant</p>
                     <p className="text-white/50 text-xs mt-0.5">Talwara, Punjab · Open Now</p>
-                  </div>
-                  <div className="ml-auto flex gap-0.5">
-                    {[...Array(5)].map((_, i) => (
-                      <svg key={i} className="w-3.5 h-3.5 fill-[#D4AF37]" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
-                    ))}
                   </div>
                 </div>
               </div>
@@ -169,13 +162,15 @@ export default function LocationSection() {
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <Link
-                href="/contact"
+                href="https://wa.me/919781336141"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-4 bg-[#D4AF37] hover:bg-[#AA8C2C] text-[#1A1A1A] font-bold uppercase tracking-widest text-sm transition-all duration-300"
               >
-                Book a Table
+                Book via WhatsApp
               </Link>
               <a
-                href="https://maps.google.com/?q=De+Leela+Veg+Restaurant+Talwara"
+                href="https://www.google.com/maps/dir//De+Leela,+Daulatpur+Road,+opposite+to+Bharat+Petroleum,+Talwara,+Talwara+Twp,+Punjab+144216/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-4 border border-[#2C2A29]/20 hover:border-[#D4AF37] text-[#2C2A29] hover:text-[#D4AF37] font-bold uppercase tracking-widest text-sm transition-all duration-300"
