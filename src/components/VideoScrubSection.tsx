@@ -47,10 +47,13 @@ type VideoFrameRequestCallback = (now: DOMHighResTimeStamp, metadata: {
   rtpTimestamp?: number;
 }) => void;
 
-interface ExtendedHTMLVideoElement extends HTMLVideoElement {
+type ExtendedHTMLVideoElement = Omit<
+  HTMLVideoElement,
+  'requestVideoFrameCallback' | 'cancelVideoFrameCallback'
+> & {
   requestVideoFrameCallback?: (callback: VideoFrameRequestCallback) => number;
   cancelVideoFrameCallback?: (handle: number) => void;
-}
+};
 
 interface VideoScrubSectionProps {
   src: string;
@@ -368,7 +371,7 @@ export default function VideoScrubSection({
          *  • No loop          → we own the timeline
          */}
         <video
-          ref={videoRef}
+          ref={videoRef as React.Ref<HTMLVideoElement>}
           src={src}
           className="absolute inset-0 w-full h-full object-cover"
           muted
