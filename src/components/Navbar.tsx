@@ -78,7 +78,7 @@ export default function Navbar() {
               })}
             </ul>
             <Link
-              href="https://wa.me/919781336141"
+              href="https://wa.me/919815592582"
               target="_blank"
               rel="noopener noreferrer"
               className="px-6 py-2.5 bg-[#D4AF37] hover:bg-[#AA8C2C] text-[#1A1A1A] text-[12px] font-bold uppercase tracking-[0.2em] transition-all duration-300 shadow-lg shadow-[#D4AF37]/10"

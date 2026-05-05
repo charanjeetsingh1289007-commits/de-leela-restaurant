@@ -15,11 +15,11 @@ export default function Footer() {
             <div className="space-y-4 text-sm font-light">
               <p className="flex gap-3 text-[#FAF9F6]/70 hover:text-[#D4AF37] transition-colors">
                 <span className="text-[#D4AF37]">📍</span>
-                Daulatpur Road, opposite Bharat Petroleum, Talwara, Punjab 144216
+                De Leela, Daulatpur Road, opposite to Bharat Petroleum, Talwara, Talwara Twp, Punjab 144216, India
               </p>
               <p className="flex gap-3 text-[#FAF9F6]/70 hover:text-[#D4AF37] transition-colors">
                 <span className="text-[#D4AF37]">📞</span>
-                097813 36141
+                98155 92582
               </p>
               <p className="flex gap-3 text-[#FAF9F6]/70 hover:text-[#D4AF37] transition-colors">
                 <span className="text-[#D4AF37]">⏰</span>
@@ -42,7 +42,7 @@ export default function Footer() {
           <div>
             <h5 className="text-lg font-bold text-white mb-6 uppercase tracking-wider">Connect With Us</h5>
             <div className="flex space-x-4 mb-8">
-              <a href="https://wa.me/919781336141" className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center hover:bg-[#D4AF37] hover:border-[#D4AF37] hover:text-[#1A1A1A] transition-all group">
+              <a href="https://wa.me/919815592582" className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center hover:bg-[#D4AF37] hover:border-[#D4AF37] hover:text-[#1A1A1A] transition-all group">
                 <span className="sr-only">WhatsApp</span>
                 <span className="text-xl group-hover:scale-110 transition-transform">💬</span>
               </a>

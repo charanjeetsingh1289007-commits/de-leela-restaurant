@@ -46,7 +46,7 @@ export default function LocationSection() {
         </svg>
       ),
       label: 'Address',
-      value: 'Daulatpur Road, opposite to Bharat Petroleum, Talwara, Punjab 144216',
+      value: 'De Leela, Daulatpur Road, opposite to Bharat Petroleum, Talwara, Talwara Twp, Punjab 144216, India',
     },
     {
       icon: (
@@ -65,7 +65,7 @@ export default function LocationSection() {
         </svg>
       ),
       label: 'Reservations',
-      value: '097813 36141', // Assuming this is the number based on the location if I can find it, or placeholder if not. I'll use the one from general knowledge or keep it descriptive.
+      value: '98155 92582', // Assuming this is the number based on the location if I can find it, or placeholder if not. I'll use the one from general knowledge or keep it descriptive.
     },
     {
       icon: (
@@ -84,7 +84,7 @@ export default function LocationSection() {
         </svg>
       ),
       label: 'Landmark',
-      value: 'Opposite Bharat Petroleum, Daulatpur Road',
+      value: 'Opposite Bharat Petroleum, Daulatpur Road, Talwara Twp',
     },
   ];
 
@@ -118,7 +118,7 @@ export default function LocationSection() {
             <div className="relative h-[420px] bg-[#2C2A29]">
               {/* Embedded Google Map */}
               <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3413.7!2d75.8!3d31.9!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzHCsDU0JzAwLjAiTiA3NcKwNDgnMDAuMCJF!5e0!3m2!1sen!2sin!4v1234567890" // Note: This is a placeholder for the Talwara region, in production the user should provide the exact CID
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3413.5684!2d75.8931!3d31.9376!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x391b73c68de103e9%3A0x7768657652d5524e!2sDe%20Leela%20Veg%20Restaurant!5e0!3m2!1sen!2sin!4v1714900000000" // Updated to match coordinates 31.9376, 75.8931
                 width="100%"
                 height="100%"
                 style={{ border: 0, filter: 'grayscale(30%) sepia(15%) contrast(1.1)' }}
@@ -162,7 +162,7 @@ export default function LocationSection() {
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <Link
-                href="https://wa.me/919781336141"
+                href="https://wa.me/919815592582"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-4 bg-[#D4AF37] hover:bg-[#AA8C2C] text-[#1A1A1A] font-bold uppercase tracking-widest text-sm transition-all duration-300"
@@ -170,7 +170,7 @@ export default function LocationSection() {
                 Book via WhatsApp
               </Link>
               <a
-                href="https://www.google.com/maps/dir//De+Leela,+Daulatpur+Road,+opposite+to+Bharat+Petroleum,+Talwara,+Talwara+Twp,+Punjab+144216/"
+                href="https://www.google.com/maps/place/De+Leela+Veg+Restaurant/@31.9376422,75.8927438,17z/data=!4m14!1m7!3m6!1s0x391b73c68de103e9:0x7768657652d5524e!2sDe+Leela+Veg+Restaurant!8m2!3d31.9376377!4d75.8953187!16s%2Fg%2F11n39mtl03!3m5!1s0x391b73c68de103e9:0x7768657652d5524e!8m2!3d31.9376377!4d75.8953187!16s%2Fg%2F11n39mtl03?hl=en-IN&entry=ttu&g_ep=EgoyMDI2MDQyOS4wIKXMDSoASAFQAw%3D%3D"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-4 border border-[#2C2A29]/20 hover:border-[#D4AF37] text-[#2C2A29] hover:text-[#D4AF37] font-bold uppercase tracking-widest text-sm transition-all duration-300"
