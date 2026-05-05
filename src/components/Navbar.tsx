@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Menu, X } from 'lucide-react';
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -95,13 +96,11 @@ export default function Navbar() {
               onClick={() => setMobileOpen((prev) => !prev)}
               className="text-[#2C2A29] hover:text-[#D4AF37] focus:outline-none p-2 rounded-md transition-colors"
             >
-              <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                {mobileOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                )}
-              </svg>
+              {mobileOpen ? (
+                <X className="h-7 w-7" strokeWidth={1.5} />
+              ) : (
+                <Menu className="h-7 w-7" strokeWidth={1.5} />
+              )}
             </button>
           </div>
         </div>

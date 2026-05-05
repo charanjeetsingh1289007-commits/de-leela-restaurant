@@ -2,8 +2,10 @@
 
 import { useEffect, useRef } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { ArrowRight } from 'lucide-react';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -91,8 +93,9 @@ export default function DishShowcase() {
         {/* Cards */}
         <div className="grid md:grid-cols-3 gap-8">
           {dishes.map((dish, i) => (
-            <div
+            <Link
               key={i}
+              href="/menu"
               className="dish-card group relative rounded-2xl overflow-hidden border border-white/8 bg-white/3 cursor-pointer"
               style={{
                 boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
@@ -133,12 +136,10 @@ export default function DishShowcase() {
                 <p className="text-[#FAF9F6]/55 font-light leading-relaxed text-sm">{dish.desc}</p>
                 <div className="mt-5 flex items-center gap-2 text-[#D4AF37] text-xs font-bold uppercase tracking-widest">
                   <span>View on Menu</span>
-                  <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M3 8h10M9 4l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>

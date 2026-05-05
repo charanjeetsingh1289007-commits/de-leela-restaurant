@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { X } from 'lucide-react';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -134,7 +135,9 @@ export default function MenuPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <Image src={lightbox} alt="Menu enlarged view" width={800} height={1067} className="w-full h-auto object-contain" />
-            <button onClick={() => setLightbox(null)} className="absolute top-4 right-4 w-10 h-10 bg-black/60 rounded-full flex items-center justify-center text-white hover:bg-black transition-colors">✕</button>
+            <button onClick={() => setLightbox(null)} className="absolute top-4 right-4 w-10 h-10 bg-black/60 rounded-full flex items-center justify-center text-white hover:bg-black transition-colors">
+              <X className="w-6 h-6" />
+            </button>
           </motion.div>
         </motion.div>
       )}

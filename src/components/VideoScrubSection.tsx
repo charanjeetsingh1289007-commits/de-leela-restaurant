@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 
 interface VideoScrubSectionProps {
   src: string;
@@ -23,23 +24,25 @@ export default function VideoScrubSection({
 }: VideoScrubSectionProps) {
   const sectionRef  = useRef<HTMLElement>(null);
   const videoRef    = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
     const section = sectionRef.current;
     const video   = videoRef.current;
     if (!section || !video) return;
 
-    // Lazy load and play/pause based on visibility to optimize performance
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            // Attempt to play only if visible
-            video.play().catch(() => {
-              // Ignore play errors (like browser autoplay policies)
+            video.play().then(() => {
+              setIsPlaying(true);
+            }).catch(() => {
+              // Autoplay might be blocked
             });
           } else {
             video.pause();
+            setIsPlaying(false);
           }
         });
       },
@@ -48,8 +51,13 @@ export default function VideoScrubSection({
     
     observer.observe(section);
 
+    // Update isPlaying state when video actually starts playing
+    const handlePlaying = () => setIsPlaying(true);
+    video.addEventListener('playing', handlePlaying);
+
     return () => {
       observer.disconnect();
+      video.removeEventListener('playing', handlePlaying);
     };
   }, []);
 
@@ -70,51 +78,70 @@ export default function VideoScrubSection({
       style={{ minHeight: '100vh' }}
       aria-label={`${title} — cinematic video section`}
     >
-      <div className="absolute inset-0 pointer-events-none">
+      {/* Poster Image - Fades out when video plays */}
+      {poster && (
+        <div 
+          className={`absolute inset-0 z-10 transition-opacity duration-1000 ease-in-out pointer-events-none ${
+            isPlaying ? 'opacity-0' : 'opacity-100'
+          }`}
+        >
+          <Image
+            src={poster}
+            alt={title}
+            fill
+            className="object-cover"
+            priority
+          />
+        </div>
+      )}
+
+      {/* Video - Fades in when playing */}
+      <div className={`absolute inset-0 z-0 transition-opacity duration-1000 ease-in-out ${
+        isPlaying ? 'opacity-100' : 'opacity-0'
+      }`}>
         <video
           ref={videoRef}
           src={src}
-          poster={poster}
           className="absolute inset-0 w-full h-full object-cover"
           muted
           loop
           playsInline
           preload="metadata"
           aria-hidden="true"
+          style={{ willChange: 'transform' }}
         />
       </div>
 
       <div
-        className="absolute inset-0 pointer-events-none"
+        className="absolute inset-0 z-20 pointer-events-none"
         style={{
           background: `linear-gradient(
             to bottom,
-            rgba(0,0,0,0.55) 0%,
-            rgba(0,0,0,0.02) 28%,
-            rgba(0,0,0,0.02) 68%,
-            rgba(0,0,0,0.75) 100%
+            rgba(0,0,0,0.6) 0%,
+            transparent 30%,
+            transparent 70%,
+            rgba(0,0,0,0.8) 100%
           )`,
-          opacity: 0.6,
         }}
       />
 
       <div
-        className="absolute inset-0 pointer-events-none"
+        className="absolute inset-0 z-20 pointer-events-none"
         style={{ boxShadow: 'inset 0 0 140px rgba(0,0,0,0.50)' }}
       />
 
       <div
-        className="absolute inset-0 pointer-events-none"
+        className="absolute inset-0 z-20 pointer-events-none"
         style={{
           background: `radial-gradient(ellipse 55% 35% at ${
             align === 'right'  ? '78%' :
             align === 'center' ? '50%' : '22%'
-          } 85%, ${accent}12 0%, transparent 70%)`,
+          } 85%, ${accent}15 0%, transparent 70%)`,
         }}
       />
 
       <div
-        className={`relative z-20 w-full flex flex-col px-8 md:px-24 lg:px-32 pb-24 ${flexAlign}`}
+        className={`relative z-30 w-full flex flex-col px-8 md:px-24 lg:px-32 pb-24 ${flexAlign}`}
       >
         <p
           className="text-[11px] font-bold uppercase tracking-[0.4em] mb-3"
@@ -130,7 +157,7 @@ export default function VideoScrubSection({
         </h2>
         <div className="w-14 h-[2px] mb-5" style={dividerStyle} />
         <p
-          className="text-white/72 font-light text-base md:text-lg leading-relaxed"
+          className="text-white/80 font-light text-base md:text-lg leading-relaxed"
           style={{
             maxWidth: 420,
             textShadow: '0 2px 18px rgba(0,0,0,0.75)',

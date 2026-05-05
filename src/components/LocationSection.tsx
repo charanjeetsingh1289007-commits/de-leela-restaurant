@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { MapPin, Clock, Phone, ParkingCircle, Navigation, ArrowRight } from 'lucide-react';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -39,54 +40,31 @@ export default function LocationSection() {
 
   const details = [
     {
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-6 h-6">
-          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
-          <circle cx="12" cy="9" r="2.5" />
-        </svg>
-      ),
+      icon: MapPin,
       label: 'Address',
       value: 'De Leela, Daulatpur Road, opposite to Bharat Petroleum, Talwara, Talwara Twp, Punjab 144216, India',
     },
     {
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-6 h-6">
-          <circle cx="12" cy="12" r="10" />
-          <path d="M12 6v6l4 2" />
-        </svg>
-      ),
+      icon: Clock,
       label: 'Opening Hours',
       value: 'Open Daily · 11:00 AM – 11:00 PM',
     },
     {
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-6 h-6">
-          <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 014.69 12 19.79 19.79 0 011.61 3.36 2 2 0 013.6 1.18h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.91 8.91a16 16 0 006.18 6.18l.99-.99a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7a2 2 0 011.72 2.03z" />
-        </svg>
-      ),
+      icon: Phone,
       label: 'Reservations',
-      value: '98155 92582', // Assuming this is the number based on the location if I can find it, or placeholder if not. I'll use the one from general knowledge or keep it descriptive.
+      value: '98155 92582',
     },
     {
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-6 h-6">
-          <rect x="3" y="3" width="18" height="18" rx="2" />
-          <path d="M7 8h10M7 12h6" />
-        </svg>
-      ),
+      icon: ParkingCircle,
       label: 'Parking',
       value: 'Ample street parking near Bharat Petroleum',
     },
     {
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-6 h-6">
-          <path d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
-        </svg>
-      ),
+      icon: Navigation,
       label: 'Landmark',
       value: 'Opposite Bharat Petroleum, Daulatpur Road, Talwara Twp',
     },
-  ];
+];
 
   return (
     <section
@@ -94,9 +72,14 @@ export default function LocationSection() {
       id="location"
       className="py-28 bg-[#FAF9F6] relative overflow-hidden"
     >
-      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#D4AF37]/30 to-transparent" />
+      {/* Premium SVG Pattern Background */}
+      <div className="absolute inset-0 opacity-[0.02] select-none pointer-events-none" style={{ backgroundImage: 'var(--pattern-gold)' }} />
+      
+      {/* Decorative Orbs */}
+      <div className="absolute top-20 right-[-10%] w-[500px] h-[500px] bg-[#D4AF37]/5 blur-[120px] rounded-full" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] bg-[#D4AF37]/5 blur-[100px] rounded-full" />
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Header */}
         <div className="loc-header text-center mb-20">
           <p className="text-sm font-bold text-[#D4AF37] uppercase tracking-[0.3em] mb-4">Find Us</p>
@@ -131,10 +114,7 @@ export default function LocationSection() {
               <div className="absolute bottom-4 left-4 right-4 bg-[#1A1A1A]/90 backdrop-blur-md rounded-xl p-4 border border-[#D4AF37]/20">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-[#D4AF37] flex items-center justify-center flex-shrink-0">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" strokeWidth="2" className="w-5 h-5">
-                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
-                      <circle cx="12" cy="9" r="2.5" />
-                    </svg>
+                    <MapPin className="w-5 h-5 text-[#1A1A1A]" strokeWidth={2} />
                   </div>
                   <div>
                     <p className="text-white font-bold text-sm">De Leela Veg Restaurant</p>
@@ -150,7 +130,7 @@ export default function LocationSection() {
             {details.map((detail, i) => (
               <div key={i} className="flex gap-4 p-5 rounded-xl border border-[#D4AF37]/10 hover:border-[#D4AF37]/30 transition-colors duration-300 group bg-white">
                 <div className="w-11 h-11 rounded-xl bg-[#D4AF37]/10 flex items-center justify-center flex-shrink-0 text-[#D4AF37] group-hover:bg-[#D4AF37] group-hover:text-[#1A1A1A] transition-all duration-300">
-                  {detail.icon}
+                  <detail.icon className="w-6 h-6" strokeWidth={1.5} />
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-[0.25em] mb-1">{detail.label}</p>
@@ -175,7 +155,8 @@ export default function LocationSection() {
                 rel="noopener noreferrer"
                 className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-4 border border-[#2C2A29]/20 hover:border-[#D4AF37] text-[#2C2A29] hover:text-[#D4AF37] font-bold uppercase tracking-widest text-sm transition-all duration-300"
               >
-                Get Directions →
+                Get Directions
+                <ArrowRight className="w-5 h-5" />
               </a>
             </div>
           </div>

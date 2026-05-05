@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MapPin, Phone, Clock, MessageCircle } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -14,15 +15,15 @@ export default function Footer() {
             </p>
             <div className="space-y-4 text-sm font-light">
               <p className="flex gap-3 text-[#FAF9F6]/70 hover:text-[#D4AF37] transition-colors">
-                <span className="text-[#D4AF37]">📍</span>
+                <MapPin className="w-5 h-5 text-[#D4AF37] flex-shrink-0" strokeWidth={1.5} />
                 De Leela, Daulatpur Road, opposite to Bharat Petroleum, Talwara, Talwara Twp, Punjab 144216, India
               </p>
               <p className="flex gap-3 text-[#FAF9F6]/70 hover:text-[#D4AF37] transition-colors">
-                <span className="text-[#D4AF37]">📞</span>
+                <Phone className="w-5 h-5 text-[#D4AF37] flex-shrink-0" strokeWidth={1.5} />
                 98155 92582
               </p>
               <p className="flex gap-3 text-[#FAF9F6]/70 hover:text-[#D4AF37] transition-colors">
-                <span className="text-[#D4AF37]">⏰</span>
+                <Clock className="w-5 h-5 text-[#D4AF37] flex-shrink-0" strokeWidth={1.5} />
                 Open Daily: 11:00 AM – 11:00 PM
               </p>
             </div>
@@ -44,7 +45,7 @@ export default function Footer() {
             <div className="flex space-x-4 mb-8">
               <a href="https://wa.me/919815592582" className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center hover:bg-[#D4AF37] hover:border-[#D4AF37] hover:text-[#1A1A1A] transition-all group">
                 <span className="sr-only">WhatsApp</span>
-                <span className="text-xl group-hover:scale-110 transition-transform">💬</span>
+                <MessageCircle className="w-6 h-6 group-hover:scale-110 transition-transform" strokeWidth={1.5} />
               </a>
               <a href="#" className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center hover:bg-[#D4AF37] hover:border-[#D4AF37] hover:text-[#1A1A1A] transition-all group">
                 <span className="sr-only">Instagram</span>

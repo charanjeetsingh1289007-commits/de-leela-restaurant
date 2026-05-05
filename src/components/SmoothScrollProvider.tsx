@@ -32,12 +32,14 @@ export default function SmoothScrollProvider({ children }: { children: React.Rea
       lenis.raf(time * 1000);
     });
 
-    // CRITICAL: Restore lagSmoothing(0) to prevent sync drift between Lenis and GSAP
+    // Restore lagSmoothing to prevent sync drift
     gsap.ticker.lagSmoothing(0);
 
-    // Normalize scroll for mobile/touch devices to prevent 'jank'
-    ScrollTrigger.normalizeScroll(true);
-    ScrollTrigger.config({ ignoreMobileResize: true });
+    // Optimized scroll configuration
+    ScrollTrigger.config({ 
+      ignoreMobileResize: true,
+      autoRefreshEvents: 'visibilitychange,DOMContentLoaded,load' 
+    });
 
     return () => {
       gsap.ticker.remove(ticker);

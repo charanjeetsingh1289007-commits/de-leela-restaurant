@@ -6,43 +6,18 @@ import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { Utensils, Camera, Star } from 'lucide-react';
 
 gsap.registerPlugin(ScrollTrigger);
 
-// ── Dynamic imports — each has an explicit loading fallback so React
-//    never encounters a null node during hydration (fixes insertBefore crash)
-const HeroScene = dynamic(() => import('./HeroScene'), {
-  ssr: false,
-  loading: () => <div aria-hidden="true" />,
-});
-const VideoScrubSection = dynamic(() => import('./VideoScrubSection'), {
-  ssr: false,
-  loading: () => <div className="w-full bg-black" style={{ height: '100svh' }} />,
-});
-const DishShowcase = dynamic(() => import('./DishShowcase'), {
-  ssr: false,
-  loading: () => <div className="py-24 bg-[#1A1A1A]" />,
-});
-const SignatureDishes = dynamic(() => import('./SignatureDishes'), {
-  ssr: false,
-  loading: () => <div className="py-16 bg-[#FAF9F6]" />,
-});
-const DiningExperience = dynamic(() => import('./DiningExperience'), {
-  ssr: false,
-  loading: () => <div className="py-16 bg-white" />,
-});
-const ServicesSection = dynamic(() => import('./ServicesSection'), {
-  ssr: false,
-  loading: () => <div className="py-16 bg-[#1A1A1A]" />,
-});
-const WhyChooseUs = dynamic(() => import('./WhyChooseUs'), {
-  ssr: false,
-  loading: () => <div className="py-16 bg-[#2C2A29]" />,
-});
-const LocationSection = dynamic(() => import('./LocationSection'), {
-  ssr: false,
-  loading: () => <div className="py-16 bg-[#FAF9F6]" />,
-});
+import HeroScene from './HeroScene';
+import VideoScrubSection from './VideoScrubSection';
+import DishShowcase from './DishShowcase';
+import SignatureDishes from './SignatureDishes';
+import DiningExperience from './DiningExperience';
+import ServicesSection from './ServicesSection';
+import WhyChooseUs from './WhyChooseUs';
+import LocationSection from './LocationSection';
 
 const stats = [
   { value: '4.8', label: 'Star Rating', suffix: '★' },
@@ -52,9 +27,9 @@ const stats = [
 ];
 
 const features = [
-  { href: '/menu', label: 'Our Menu', desc: 'From hearty biryanis to street-style chaats — explore 50+ authentic vegetarian dishes crafted with love.', icon: '🍽️' },
-  { href: '/gallery', label: 'Gallery', desc: 'Step inside De Leela through our lens — warm lighting, vibrant food, and an ambiance made for memories.', icon: '📸' },
-  { href: '/reviews', label: 'Reviews', desc: '"Absolutely fantastic food and service!" — See why 119 guests rate us 4.8 stars.', icon: '⭐' },
+  { href: '/menu', label: 'Our Menu', desc: 'From hearty biryanis to street-style chaats — explore 50+ authentic vegetarian dishes crafted with love.', icon: Utensils },
+  { href: '/gallery', label: 'Gallery', desc: 'Step inside De Leela through our lens — warm lighting, vibrant food, and an ambiance made for memories.', icon: Camera },
+  { href: '/reviews', label: 'Reviews', desc: '"Absolutely fantastic food and service!" — See why 119 guests rate us 4.8 stars.', icon: Star },
 ];
 
 const stripImages = [
@@ -90,16 +65,22 @@ export default function CinematicHome() {
       // ── Hero parallax: bg zooms out as you scroll (scrub = always bidirectional) ──
       if (heroBgRef.current) {
         gsap.to(heroBgRef.current, {
-          yPercent: 25, scale: 1, ease: 'none',
+          yPercent: 15, scale: 1.05, ease: 'none',
           scrollTrigger: { trigger: heroRef.current, start: 'top top', end: 'bottom top', scrub: 1 },
         });
       }
 
+      // Hero content animations - fromTo ensures SSR visibility
+      gsap.fromTo('.hero-title', { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 1.2, ease: 'power3.out', delay: 0.2 });
+      gsap.fromTo('.hero-subtitle', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 1, ease: 'power3.out', delay: 0.5 });
+      gsap.fromTo('.hero-buttons', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', delay: 0.8 });
+      gsap.fromTo('.hero-stars', { opacity: 0 }, { opacity: 1, duration: 0.8, delay: 1.2 });
+
       // Hero content fades out on scroll down, back in on scroll up
       if (heroContentRef.current) {
         gsap.to(heroContentRef.current, {
-          opacity: 0, yPercent: -15, ease: 'none',
-          scrollTrigger: { trigger: heroRef.current, start: '20% top', end: '60% top', scrub: 1.5 },
+          opacity: 0, yPercent: -10, ease: 'power2.inOut',
+          scrollTrigger: { trigger: heroRef.current, start: '20% top', end: '60% top', scrub: 1.2 },
         });
       }
 
@@ -128,36 +109,41 @@ export default function CinematicHome() {
         );
       });
 
-      // ── Feature cards 3D stagger — bidirectional ──
-      gsap.utils.toArray<HTMLElement>('.feature-card').forEach((card, i) => {
-        gsap.fromTo(card,
-          { y: 80, opacity: 0, rotateX: 15 },
+      // ── Feature cards stagger ──
+      const featureCards = gsap.utils.toArray<HTMLElement>('.feature-card');
+      if (featureCards.length > 0) {
+        gsap.fromTo(featureCards,
+          { y: 60, opacity: 0, rotateX: 10 },
           {
             y: 0, opacity: 1, rotateX: 0,
-            duration: 0.85, ease: 'power3.out',
+            duration: 1, ease: 'power3.out',
+            stagger: 0.15,
             scrollTrigger: {
-              trigger: cardsRef.current, start: 'top 82%',
-              toggleActions: 'play reverse play reverse',
-            },
-            delay: i * 0.16,
+              trigger: cardsRef.current, start: 'top 85%',
+              toggleActions: 'play none none none',
+              once: true
+            }
           }
         );
-      });
+      }
 
       // ── Stats — bidirectional ──
-      gsap.utils.toArray<HTMLElement>('.stat-item').forEach((el, i) => {
-        gsap.fromTo(el,
+      const statItems = gsap.utils.toArray<HTMLElement>('.stat-item');
+      if (statItems.length > 0) {
+        gsap.fromTo(statItems,
           { y: 50, opacity: 0 },
           {
-            y: 0, opacity: 1, duration: 0.7,
+            y: 0, opacity: 1, duration: 0.8,
+            stagger: 0.12,
+            ease: 'power2.out',
             scrollTrigger: {
-              trigger: statsRef.current, start: 'top 82%',
-              toggleActions: 'play reverse play reverse',
-            },
-            delay: i * 0.13,
+              trigger: statsRef.current, start: 'top 85%',
+              toggleActions: 'play none none none',
+              once: true
+            }
           }
         );
-      });
+      }
 
       // ── Horizontal strip: cinematic left-pan with scrub (inherently bidirectional) ──
       if (stripRef.current) {
@@ -262,7 +248,7 @@ export default function CinematicHome() {
       <section ref={heroRef} className="relative h-screen flex items-center justify-center overflow-hidden">
 
         {/* Layered Background */}
-        <div ref={heroBgRef} className="absolute inset-0 scale-110" style={{ willChange: 'transform' }}>
+        <div ref={heroBgRef} className="absolute inset-0 scale-110" style={{ willChange: 'transform, opacity' }}>
           <Image src="/assets/all img/2026-02-08 (2).jpg" alt="De Leela Restaurant interior — warm, luxurious vegetarian dining ambiance" fill sizes="100vw" className="object-cover" priority quality={85} />
         </div>
         {/* Gradient overlay */}
@@ -291,42 +277,30 @@ export default function CinematicHome() {
 
         {/* Hero Content — above 3D scene */}
         <div ref={heroContentRef} className="relative text-center text-white px-4 max-w-5xl mx-auto" style={{ zIndex: 20 }}>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.7 }}
-            className="text-sm font-bold uppercase tracking-[0.35em] text-[#D4AF37] mb-6"
-          >
+          <p className="text-sm font-bold uppercase tracking-[0.35em] text-[#D4AF37] mb-6">
             Pure Vegetarian Fine Dining
-          </motion.p>
-          <motion.h1
-            initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-            className="text-6xl md:text-8xl lg:text-9xl font-serif font-bold leading-none mb-6 text-glow-gold"
-          >
-            De Leela
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8, duration: 0.8 }}
-            className="text-xl md:text-2xl font-light text-white/80 mb-10 max-w-2xl mx-auto"
-          >
+          </p>
+          <h1 className="text-6xl md:text-8xl lg:text-9xl font-serif font-bold text-white mb-6 tracking-tight leading-[0.9] hero-title">
+            Experience <br />
+            <span className="shimmer-text">De Leela</span>
+          </h1>
+          <p className="text-xl md:text-2xl font-light text-white/80 mb-10 max-w-2xl mx-auto hero-subtitle">
             Where culinary artistry meets authentic vegetarian tradition
-          </motion.p>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.1, duration: 0.7 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center"
-          >
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center hero-buttons">
             <Link href="/menu" className="inline-flex items-center justify-center px-10 py-4 bg-[#D4AF37] hover:bg-[#AA8C2C] text-[#1A1A1A] font-bold uppercase tracking-widest text-sm transition-all duration-300 hover:shadow-[0_0_40px_rgba(212,175,55,0.4)]">
               Explore Menu
             </Link>
             <Link href="/contact" className="inline-flex items-center justify-center px-10 py-4 border border-white/40 hover:border-[#D4AF37] text-white hover:text-[#D4AF37] font-bold uppercase tracking-widest text-sm transition-all duration-300 backdrop-blur-sm">
               Reserve Table
             </Link>
-          </motion.div>
+          </div>
           {/* Stars */}
           <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.4, duration: 0.6 }}
-            className="mt-12 flex items-center justify-center gap-3"
+            className="mt-12 flex items-center justify-center gap-3 hero-stars"
           >
             <div className="flex gap-1 text-[#D4AF37]">
-              {[...Array(5)].map((_, i) => <span key={i} className="text-lg">★</span>)}
+              {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 fill-current" strokeWidth={0} />)}
             </div>
             <span className="text-white/70 text-sm font-light">4.8 / 5 from 119 reviews</span>
           </motion.div>
@@ -353,7 +327,7 @@ export default function CinematicHome() {
       <Suspense fallback={<div className="w-full bg-black" style={{ height: '100svh' }} />}>
         <VideoScrubSection
           src="/assets/videos/cooking.mp4"
-          poster="/assets/hq/hero_food_1777882539725.png"
+          poster="/assets/hq/cooking_poster.png"
           title="The Art of Cooking"
           subtitle="Behind the scenes"
           description="Every dish at De Leela is crafted with precision, passion, and the finest ingredients. Watch our chefs bring authentic vegetarian cuisine to life."
@@ -367,7 +341,7 @@ export default function CinematicHome() {
       <Suspense fallback={<div className="w-full bg-black" style={{ height: '100svh' }} />}>
         <VideoScrubSection
           src="/assets/videos/coffee.mp4"
-          poster="/assets/hq/gallery_dish_2_1777882595741.png"
+          poster="/assets/hq/coffee_poster.png"
           title="Liquid Perfection"
           subtitle="Signature Beverages"
           description="From masala chai to chilled mocktails — our beverages are crafted with the same love and attention as every dish on our menu."
@@ -462,8 +436,8 @@ export default function CinematicHome() {
             <p className="text-sm font-bold text-[#D4AF37] uppercase tracking-[0.25em] mb-4">Discover</p>
             <h2 className="text-4xl md:text-5xl font-serif font-bold text-[#2C2A29]">The De Leela Experience</h2>
           </div>
-          <div ref={cardsRef} className="grid md:grid-cols-3 gap-8">
-            {features.map((f) => (
+          <div ref={cardsRef} className="grid md:grid-cols-3 gap-8" style={{ willChange: 'transform, opacity' }}>
+            {features.map(({ icon: Icon, ...f }) => (
               <Link key={f.href} href={f.href}>
                 <div
                   className="feature-card bg-white rounded-2xl p-10 border border-[#FAF9F6] cursor-pointer"
@@ -471,7 +445,9 @@ export default function CinematicHome() {
                   onMouseMove={handleTilt}
                   onMouseLeave={resetTilt}
                 >
-                  <div className="text-5xl mb-6">{f.icon}</div>
+                  <div className="mb-6">
+                    <Icon className="w-12 h-12 text-[#D4AF37]" strokeWidth={1.2} />
+                  </div>
                   <h3 className="text-2xl font-serif font-bold text-[#2C2A29] mb-4">{f.label}</h3>
                   <p className="text-[#2C2A29]/70 font-light leading-relaxed mb-6">{f.desc}</p>
                   <span className="text-sm font-bold text-[#D4AF37] uppercase tracking-widest">
@@ -513,7 +489,7 @@ export default function CinematicHome() {
           </h2>
         </div>
         <div className="overflow-hidden">
-          <div ref={stripRef} className="strip-track px-8">
+          <div ref={stripRef} className="strip-track px-8" style={{ willChange: 'transform' }}>
             {[...stripImages, ...stripImages].map((src, i) => (
               <div key={i} className="flex-shrink-0 w-72 h-96 relative rounded-xl overflow-hidden border border-white/10">
                 <Image src={src} alt={`De Leela restaurant food and ambiance photo ${i + 1}`} fill sizes="(max-width: 640px) 288px, 288px" className="object-cover hover:scale-105 transition-transform duration-700" />

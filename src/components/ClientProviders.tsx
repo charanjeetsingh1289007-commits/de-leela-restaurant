@@ -1,11 +1,4 @@
-'use client';
-
-import dynamic from 'next/dynamic';
-
-const SmoothScrollProvider = dynamic(
-  () => import('./SmoothScrollProvider'),
-  { ssr: false }
-);
+import SmoothScrollProvider from './SmoothScrollProvider';
 
 export default function ClientProviders({ children }: { children: React.ReactNode }) {
   return (

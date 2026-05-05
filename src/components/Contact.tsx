@@ -3,14 +3,15 @@
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { Phone, Mail, MapPin, Clock, ParkingCircle, Leaf } from 'lucide-react';
 
 gsap.registerPlugin(ScrollTrigger);
 
 const contactInfo = [
-  { icon: 'M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z', label: 'Phone', value: 'Call us to reserve your table', sub: 'Available Mon–Sun, 11 AM – 11 PM' },
-  { icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', label: 'Email', value: 'deleelavegrestraurent@gmail.com', sub: 'We reply within 24 hours' },
-  { icon: 'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z', label: 'Location', value: 'De Leela, Daulatpur Road, opposite to Bharat Petroleum, Talwara, Talwara Twp, Punjab 144216, India', sub: 'Easy access · Free street parking nearby' },
-  { icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', label: 'Hours', value: 'Mon – Sun: 11:00 AM – 11:00 PM', sub: 'Open every day including holidays' },
+  { icon: Phone, label: 'Phone', value: 'Call us to reserve your table', sub: 'Available Mon–Sun, 11 AM – 11 PM' },
+  { icon: Mail, label: 'Email', value: 'deleelavegrestraurent@gmail.com', sub: 'We reply within 24 hours' },
+  { icon: MapPin, label: 'Location', value: 'De Leela, Daulatpur Road, opposite to Bharat Petroleum, Talwara, Talwara Twp, Punjab 144216, India', sub: 'Easy access · Free street parking nearby' },
+  { icon: Clock, label: 'Hours', value: 'Mon – Sun: 11:00 AM – 11:00 PM', sub: 'Open every day including holidays' },
 ];
 
 export default function ContactPage() {
@@ -71,12 +72,10 @@ export default function ContactPage() {
                   Our team is ready to assist you with reservations, special requests, or any inquiries about our menu and events.
                 </p>
                 <div className="space-y-7">
-                  {contactInfo.map(({ icon, label, value, sub }) => (
+                  {contactInfo.map(({ icon: Icon, label, value, sub }) => (
                     <div key={label} className="info-item flex items-start gap-5">
                       <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0 text-[#D4AF37]">
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d={icon} />
-                        </svg>
+                        <Icon className="w-5 h-5" strokeWidth={1.5} />
                       </div>
                       <div className="pt-1">
                         <p className="text-[12px] font-bold text-[#FAF9F6]/40 uppercase tracking-wider mb-1">{label}</p>
@@ -139,14 +138,16 @@ export default function ContactPage() {
           </p>
           <div className="grid md:grid-cols-3 gap-8 text-center">
             {[
-              { icon: '🅿️', title: 'Free Parking', desc: 'Free street parking conveniently available near the restaurant.' },
-              { icon: '🌿', title: '100% Vegetarian', desc: 'Dedicated meat-free kitchen — no cross-contamination, ever.' },
-              { icon: '📍', title: 'Talwara, Punjab', desc: 'Located in the heart of Talwara, easy to find and easy to reach.' },
-            ].map((item) => (
-              <div key={item.title}>
-                <div className="text-3xl mb-3">{item.icon}</div>
-                <h3 className="font-bold text-white mb-2">{item.title}</h3>
-                <p className="text-[#FAF9F6]/50 text-sm font-light">{item.desc}</p>
+              { icon: ParkingCircle, title: 'Free Parking', desc: 'Free street parking conveniently available near the restaurant.' },
+              { icon: Leaf, title: '100% Vegetarian', desc: 'Dedicated meat-free kitchen — no cross-contamination, ever.' },
+              { icon: MapPin, title: 'Talwara, Punjab', desc: 'Located in the heart of Talwara, easy to find and easy to reach.' },
+            ].map(({ icon: Icon, title, desc }) => (
+              <div key={title}>
+                <div className="mb-4 flex justify-center">
+                  <Icon className="w-10 h-10 text-[#D4AF37]" strokeWidth={1.2} />
+                </div>
+                <h3 className="font-bold text-white mb-2">{title}</h3>
+                <p className="text-[#FAF9F6]/50 text-sm font-light">{desc}</p>
               </div>
             ))}
           </div>
